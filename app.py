@@ -1,10 +1,17 @@
 
+import pandas as pd
 import plotly.express as px
-from dash import Dash, html, dash_table, dcc, callback, Output, Input
+from dash import Dash, html, dash_table, dcc, Output, Input
 import yfinance as yf
 from datetime import datetime
 
+
+
+app = Dash(__name__)
+
+server=app.server
 nifty = yf.download('^NSEI', start='2000-01-01', end=None)
+nifty = pd.DataFrame(nifty)
 
 nifty['Daily Change %'] = nifty['Adj Close'].pct_change() * 100
 nifty.drop(columns=["Volume","Adj Close"],inplace=True)
@@ -17,14 +24,14 @@ nifty["Average"]=(nifty["Open"]+nifty["High"]+nifty["Low"]+nifty["Close"])/4
 
 nifty=nifty[["Date","Average","Daily Change %"]]
 nifty=nifty.drop(index=0)
-nifty['Date'] = nifty['Date'].dt.strftime('%Y-%m-%d')
+nifty['Date'] = pd.to_datetime(nifty['Date'])
+
+nifty["Daily Change %"]=nifty["Daily Change %"].round(2)
 
 df=nifty
-df["Daily Change %"]=df["Daily Change %"].round(2)
-
-app = Dash(__name__)
-
-server=app.server
+df["Month"]=df['Date'].dt.month_name()
+df["Month_Num"]=df['Date'].dt.month
+df['Year'] = df['Date'].dt.year
 
 today = datetime.today()
 start_of_year = datetime(today.year, 1, 1)
@@ -39,24 +46,67 @@ app.layout = html.Div([
         start_date=start_of_year,
         end_date=today,
         display_format='YYYY-MM-DD',
+      style={
+                'border': '1px solid #007BFF',  # Border color
+                'borderRadius': '5px',           # Rounded corners
+                'padding': '2px',                # Padding inside the component
+                'backgroundColor': '#f8f9fa',     # Background color
+                'width': 'auto',                  # Width of the date picker
+                'display': 'inline-block',         # Keep the date picker inline
+            }
+    ),
+    
+    
+    
+    
+     # input for monthwise or date wise
+    dcc.Dropdown(
+        id='view-selector',
+        options=[
+            {'label': 'Daily', 'value': 'day'},
+            {'label': 'Monthly', 'value': 'month'},
+            {'label': 'Yearly', 'value': 'year'}
+        ],
+        value='day',  # Default view is day-wise
+        clearable=False,
+         style={
+             'height':'auto',
+            'width': '200px',  # Set width of the dropdown
+            'padding': '0px',  # Add some padding
+            'fontSize': '24px',  # Change font size
+            'border': '2px solid #000',  # Add border
+            'borderRadius': '10px',  # Rounded corners
+            'backgroundColor': '#f9f9f9',  # Background color
+            'display':"inline-block",
+            'margin':'0px'
+        }
     ),
     
     # Input for Daily Change %
-    dcc.Input(id='change-filter', type='number', placeholder="Daily Change %",style={"font-size":"24px","margin":"20px"}),
+    dcc.Input(id='change-filter', type='number', placeholder="Daily Change %",style={"font-size":"24px","margin":"20px","display":"inline-block"}),
+    
     
     dcc.Checklist(
-        id='change-type',   labelStyle={"font-size":"28px"}, inputStyle={"transform":"scale(2.5)","margin":"20px"}, style={"display":"flex","justify-content":"center","margin":"20px"},
+        id='change-type',   labelStyle={"font-size":"28px"}, inputStyle={"transform":"scale(2.5)","margin":"20px"}, style={"display":"inline-block","justify-content":"center","margin":"20px"},
         options=[
             {'label': 'Greater than', 'value': 'greater'},
             {'label': 'Less than', 'value': 'less'}
         ],
-        value=['greater'],
+        
+        value=[],
         inline=True
     ),
     
     # Table to display data
     dash_table.DataTable( style_cell={"textAlign":"center", 'font_size': '24px'} , style_table={"width":"40%","margin":"auto"},
-        id='table', columns=[{'name': col, 'id': col} for col in df.columns],style_data_conditional=[
+        id='table', 
+        columns=[
+            {'name': "Date/Month", 'id': "Date"},
+            {"name":"Average","id":"Average"},
+            {"name":"Daily Change %","id":"Daily Change %"}
+            ],
+        data=[],
+        style_data_conditional=[
             # Style for values less than -2.5 (Dark Red)
             {
                 'if': {
@@ -99,6 +149,9 @@ app.layout = html.Div([
     
 ])
 
+
+
+
 # Callback for filtering data
 @app.callback(
     Output('table', 'data'),
@@ -106,25 +159,86 @@ app.layout = html.Div([
     [Input('date-picker-range', 'start_date'),
      Input('date-picker-range', 'end_date'),
      Input('change-filter', 'value'),
-     Input('change-type', 'value')]
+     Input('change-type', 'value'),
+     Input('view-selector', 'value')]
 )
-def update_table(start_date, end_date, change_value, change_type):
+def update_table(start_date, end_date, change_value, change_type, view_type):
+    
+    
+    if view_type == 'year':
+        # Aggregate data by month (sum of values) and calculate daily change percentage mean
+        year_data = df.groupby('Year').agg({
+            'Average': 'mean',  # mean of values for each month
+            'Daily Change %': 'sum'  # Average daily change percentage for each month
+        }).reset_index()
+        
+        if change_value is not None:
+            if 'greater' in change_type:
+                year_data = year_data[year_data['Daily Change %'] > change_value]
+            if "less" in change_type:
+                year_data = year_data[year_data['Daily Change %'] < change_value]
+            else:
+                year_data=year_data[year_data["Daily Change %"].abs()>change_value]   
+        
+        year_data['Date'] = year_data['Year']
+        # month_data = month_data.sort_values(by=["Year",'Month_Num'], ascending=True)
+        
+         
+
+        fig = px.line(year_data, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
+
+        return year_data[['Date', 'Average', 'Daily Change %']].to_dict('records'), fig
+  
     # Filter by date range
-    filtered_df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
+    filtered_df=df2 = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
     
     # Filter by Daily Change %
     if change_value is not None:
         if 'greater' in change_type:
             filtered_df = filtered_df[filtered_df['Daily Change %'] > change_value]
+            
         if "less" in change_type:
             filtered_df = filtered_df[filtered_df['Daily Change %'] < change_value]
+            
         else:
             filtered_df=filtered_df[filtered_df["Daily Change %"].abs()>change_value]    
     filtered_df=filtered_df.sort_values(by="Date",ascending=False)
-    fig = px.line(filtered_df, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
+    # df2=df2.sort_values(by="Date",ascending=False)
+    
+    if view_type == 'month':
+        # Aggregate data by month (sum of values) and calculate daily change percentage mean
+        month_data = df2.groupby(['Year','Month',"Month_Num"]).agg({
+            'Average': 'mean',  # mean of values for each month
+            'Daily Change %': 'sum'  # Average daily change percentage for each month
+        }).reset_index()
+        
+        if change_value is not None:
+            if 'greater' in change_type:
+                month_data = month_data[month_data['Daily Change %'] > change_value]
+            if "less" in change_type:
+                month_data = month_data[month_data['Daily Change %'] < change_value]
+            else:
+                month_data=month_data[month_data["Daily Change %"].abs()>change_value]   
+        
+        month_data['Date'] = month_data['Year'].astype(str) + "-" + month_data['Month']
+        month_data = month_data.sort_values(by=["Year",'Month_Num'], ascending=True)
+        
+         
+        
+        fig = px.line(month_data, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
+
+        return month_data[['Date', 'Average', 'Daily Change %']].to_dict('records'), fig
+    else:
+        # Day-wise data (raw data)
+        filtered_df["Date"]= filtered_df['Date'].dt.strftime('%Y-%m-%d')
+
+        fig = px.line(filtered_df, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
+    
+        return filtered_df.to_dict('records'), fig
 
     
-    return filtered_df.to_dict('records'), fig
+    
+    
 
 
 # Run the app
