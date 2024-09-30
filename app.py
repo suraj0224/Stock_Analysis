@@ -1,7 +1,7 @@
 
 import pandas as pd
 import plotly.express as px
-from dash import Dash, html, dash_table, dcc, Output, Input
+from dash import Dash, html, dash_table, dcc, Output, Input,State
 import yfinance as yf
 from datetime import datetime
 
@@ -10,35 +10,20 @@ from datetime import datetime
 app = Dash(__name__)
 
 server=app.server
-nifty = yf.download('^NSEI', start='2000-01-01', end=None)
-nifty = pd.DataFrame(nifty)
-
-nifty['Daily Change %'] = nifty['Adj Close'].pct_change() * 100
-nifty.drop(columns=["Volume","Adj Close"],inplace=True)
-
-nifty[["Open","High","Low","Close"]]=nifty[["Open","High","Low","Close"]].astype(int)
-nifty.reset_index(inplace=True)
-
-# instead of considering all four columns, we are creating a new column of average of all the 4 columns to easily study 
-nifty["Average"]=(nifty["Open"]+nifty["High"]+nifty["Low"]+nifty["Close"])/4
-
-nifty=nifty[["Date","Average","Daily Change %"]]
-nifty=nifty.drop(index=0)
-nifty['Date'] = pd.to_datetime(nifty['Date'])
-
-nifty["Daily Change %"]=nifty["Daily Change %"].round(2)
-
-df=nifty
-df["Month"]=df['Date'].dt.month_name()
-df["Month_Num"]=df['Date'].dt.month
-df['Year'] = df['Date'].dt.year
 
 today = datetime.today()
 start_of_year = datetime(today.year, 1, 1)
 
 
+
 app.layout = html.Div([
     html.H1("Stock Market Data"),
+    
+     html.Div(dcc.Input(id='input-on-submit', type='text',value="^NSEI",style={"display":"inline-block","font-size":"28px"})),
+    html.Button('Submit', id='submit-val', n_clicks=0,style={"display":"inline-block","font-size":"24px"}),
+    html.Div(id='container-button-basic',
+             children='Enter a value and press submit',style={"display":"flex","font-size":"24px"}), 
+   
     
     # Date range slider
     dcc.DatePickerRange(
@@ -55,7 +40,6 @@ app.layout = html.Div([
                 'display': 'inline-block',         # Keep the date picker inline
             }
     ),
-    
     
     
     
@@ -154,15 +138,51 @@ app.layout = html.Div([
 
 # Callback for filtering data
 @app.callback(
+    Output('container-button-basic', 'children'),
     Output('table', 'data'),
     Output(component_id='controls-and-graph', component_property='figure'),
     [Input('date-picker-range', 'start_date'),
      Input('date-picker-range', 'end_date'),
      Input('change-filter', 'value'),
      Input('change-type', 'value'),
-     Input('view-selector', 'value')]
+     Input('view-selector', 'value'),
+     Input('submit-val', 'n_clicks'),
+     State('input-on-submit', 'value')
+      ]
+    
 )
-def update_table(start_date, end_date, change_value, change_type, view_type):
+
+
+
+
+def update_table(start_date, end_date, change_value, change_type, view_type, n_clicks, ticker_value):
+    
+    
+    stock=ticker_value
+    print(stock,n_clicks)
+    nifty = yf.download(stock, start='2000-01-01', end=None)
+    nifty = pd.DataFrame(nifty)
+
+    nifty['Daily Change %'] = nifty['Adj Close'].pct_change() * 100
+    nifty.drop(columns=["Volume","Adj Close"],inplace=True)
+
+    nifty[["Open","High","Low","Close"]]=nifty[["Open","High","Low","Close"]].astype(int)
+    nifty.reset_index(inplace=True)
+
+    # instead of considering all four columns, we are creating a new column of average of all the 4 columns to easily study 
+    nifty["Average"]=(nifty["Open"]+nifty["High"]+nifty["Low"]+nifty["Close"])/4
+
+    nifty=nifty[["Date","Average","Daily Change %"]]
+    nifty=nifty.drop(index=0)
+    nifty['Date'] = pd.to_datetime(nifty['Date'])
+
+    nifty["Daily Change %"]=nifty["Daily Change %"].round(2)
+
+    df=nifty
+    df["Month"]=df['Date'].dt.month_name()
+    df["Month_Num"]=df['Date'].dt.month
+    df['Year'] = df['Date'].dt.year
+
     
     
     if view_type == 'year':
@@ -187,7 +207,7 @@ def update_table(start_date, end_date, change_value, change_type, view_type):
 
         fig = px.line(year_data, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
 
-        return year_data[['Date', 'Average', 'Daily Change %']].to_dict('records'), fig
+        return ticker_value, year_data[['Date', 'Average', 'Daily Change %']].to_dict('records'), fig
   
     # Filter by date range
     filtered_df=df2 = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
@@ -227,14 +247,14 @@ def update_table(start_date, end_date, change_value, change_type, view_type):
         
         fig = px.line(month_data, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
 
-        return month_data[['Date', 'Average', 'Daily Change %']].to_dict('records'), fig
+        return ticker_value, month_data[['Date', 'Average', 'Daily Change %']].to_dict('records'), fig
     else:
         # Day-wise data (raw data)
         filtered_df["Date"]= filtered_df['Date'].dt.strftime('%Y-%m-%d')
 
         fig = px.line(filtered_df, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
     
-        return filtered_df.to_dict('records'), fig
+        return ticker_value, filtered_df.to_dict('records'), fig
 
     
     
