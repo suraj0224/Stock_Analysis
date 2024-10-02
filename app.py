@@ -4,17 +4,15 @@ import plotly.express as px
 from dash import Dash, html, dash_table, dcc, Output, Input,State
 import yfinance as yf
 from datetime import datetime
+import logging
+
+logging.basicConfig(filename='app.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
 
 
 app = Dash(__name__)
 
 server=app.server
-
-today = datetime.today()
-start_of_year = datetime(today.year, 1, 1)
-
-
 
 app.layout = html.Div([
     html.H1("Stock Market Data"),
@@ -28,8 +26,8 @@ app.layout = html.Div([
     # Date range slider
     dcc.DatePickerRange(
         id='date-picker-range',
-        start_date=start_of_year,
-        end_date=today,
+        start_date=datetime(datetime.today().year, 1, 1),
+        end_date=datetime.today().date(),
         display_format='YYYY-MM-DD',
       style={
                 'border': '1px solid #007BFF',  # Border color
@@ -85,7 +83,7 @@ app.layout = html.Div([
     dash_table.DataTable( style_cell={"textAlign":"center", 'font_size': '24px'} , style_table={"width":"40%","margin":"auto"},
         id='table', 
         columns=[
-            {'name': "Date/Month", 'id': "Date"},
+            {'name': "Date", 'id': "Date"},
             {"name":"Average","id":"Average"},
             {"name":"Daily Change %","id":"Daily Change %"}
             ],
@@ -156,105 +154,112 @@ app.layout = html.Div([
 
 
 def update_table(start_date, end_date, change_value, change_type, view_type, n_clicks, ticker_value):
-    
-    
-    stock=ticker_value
-    print(stock,n_clicks)
-    nifty = yf.download(stock, start='2000-01-01', end=None)
-    nifty = pd.DataFrame(nifty)
-
-    nifty['Daily Change %'] = nifty['Adj Close'].pct_change() * 100
-    nifty.drop(columns=["Volume","Adj Close"],inplace=True)
-
-    nifty[["Open","High","Low","Close"]]=nifty[["Open","High","Low","Close"]].astype(int)
-    nifty.reset_index(inplace=True)
-
-    # instead of considering all four columns, we are creating a new column of average of all the 4 columns to easily study 
-    nifty["Average"]=(nifty["Open"]+nifty["High"]+nifty["Low"]+nifty["Close"])/4
-
-    nifty=nifty[["Date","Average","Daily Change %"]]
-    nifty=nifty.drop(index=0)
-    nifty['Date'] = pd.to_datetime(nifty['Date'])
-
-    nifty["Daily Change %"]=nifty["Daily Change %"].round(2)
-
-    df=nifty
-    df["Month"]=df['Date'].dt.month_name()
-    df["Month_Num"]=df['Date'].dt.month
-    df['Year'] = df['Date'].dt.year
-
-    
-    
-    if view_type == 'year':
-        # Aggregate data by month (sum of values) and calculate daily change percentage mean
-        year_data = df.groupby('Year').agg({
-            'Average': 'mean',  # mean of values for each month
-            'Daily Change %': 'sum'  # Average daily change percentage for each month
-        }).reset_index()
+    try:
         
+        
+        stock=ticker_value
+        # print(stock,n_clicks)
+        nifty = yf.download(stock, start='2000-01-01', end=None)
+        nifty = pd.DataFrame(nifty)
+
+        nifty['Daily Change %'] = nifty['Adj Close'].pct_change() * 100
+        nifty.drop(columns=["Volume","Adj Close"],inplace=True)
+
+        nifty[["Open","High","Low","Close"]]=nifty[["Open","High","Low","Close"]].astype(int)
+        nifty.reset_index(inplace=True)
+
+        # instead of considering all four columns, we are creating a new column of average of all the 4 columns to easily study 
+        nifty["Average"]=(nifty["Open"]+nifty["High"]+nifty["Low"]+nifty["Close"])/4
+
+        nifty=nifty[["Date","Average","Daily Change %"]]
+        nifty=nifty.drop(index=0)
+        nifty['Date'] = pd.to_datetime(nifty['Date'])
+
+        nifty["Daily Change %"]=nifty["Daily Change %"].round(2)
+
+        df=nifty
+        df["Month"]=df['Date'].dt.month_name()
+        df["Month_Num"]=df['Date'].dt.month
+        df['Year'] = df['Date'].dt.year
+
+        
+        
+        if view_type == 'year':
+            # Aggregate data by month (sum of values) and calculate daily change percentage mean
+            year_data = df.groupby('Year').agg({
+                'Average': 'mean',  # mean of values for each month
+                'Daily Change %': 'sum'  # Average daily change percentage for each month
+            }).reset_index()
+            
+            if change_value is not None:
+                if 'greater' in change_type:
+                    year_data = year_data[year_data['Daily Change %'] > change_value]
+                if "less" in change_type:
+                    year_data = year_data[year_data['Daily Change %'] < change_value]
+                else:
+                    year_data=year_data[year_data["Daily Change %"].abs()>change_value]   
+            
+            year_data['Date'] = year_data['Year']
+            # month_data = month_data.sort_values(by=["Year",'Month_Num'], ascending=True)
+            
+            
+
+            fig = px.line(year_data, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
+
+            return ticker_value, year_data[['Date', 'Average', 'Daily Change %']].to_dict('records'), fig
+    
+        # Filter by date range
+        filtered_df=df2 = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
+        
+        # Filter by Daily Change %
         if change_value is not None:
             if 'greater' in change_type:
-                year_data = year_data[year_data['Daily Change %'] > change_value]
+                filtered_df = filtered_df[filtered_df['Daily Change %'] > change_value]
+                
             if "less" in change_type:
-                year_data = year_data[year_data['Daily Change %'] < change_value]
+                filtered_df = filtered_df[filtered_df['Daily Change %'] < change_value]
+                
             else:
-                year_data=year_data[year_data["Daily Change %"].abs()>change_value]   
+                filtered_df=filtered_df[filtered_df["Daily Change %"].abs()>change_value]    
+        filtered_df=filtered_df.sort_values(by="Date",ascending=False)
+        # df2=df2.sort_values(by="Date",ascending=False)
         
-        year_data['Date'] = year_data['Year']
-        # month_data = month_data.sort_values(by=["Year",'Month_Num'], ascending=True)
-        
-         
-
-        fig = px.line(year_data, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
-
-        return ticker_value, year_data[['Date', 'Average', 'Daily Change %']].to_dict('records'), fig
-  
-    # Filter by date range
-    filtered_df=df2 = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
-    
-    # Filter by Daily Change %
-    if change_value is not None:
-        if 'greater' in change_type:
-            filtered_df = filtered_df[filtered_df['Daily Change %'] > change_value]
+        if view_type == 'month':
+            # Aggregate data by month (sum of values) and calculate daily change percentage mean
+            month_data = df2.groupby(['Year','Month',"Month_Num"]).agg({
+                'Average': 'mean',  # mean of values for each month
+                'Daily Change %': 'sum'  # Average daily change percentage for each month
+            }).reset_index()
             
-        if "less" in change_type:
-            filtered_df = filtered_df[filtered_df['Daily Change %'] < change_value]
+            if change_value is not None:
+                if 'greater' in change_type:
+                    month_data = month_data[month_data['Daily Change %'] > change_value]
+                if "less" in change_type:
+                    month_data = month_data[month_data['Daily Change %'] < change_value]
+                else:
+                    month_data=month_data[month_data["Daily Change %"].abs()>change_value]   
             
+            month_data['Date'] = month_data['Year'].astype(str) + "-" + month_data['Month']
+            month_data = month_data.sort_values(by=["Year",'Month_Num'], ascending=True)
+            
+            
+            
+            fig = px.line(month_data, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
+
+            return ticker_value, month_data[['Date', 'Average', 'Daily Change %']].to_dict('records'), fig
         else:
-            filtered_df=filtered_df[filtered_df["Daily Change %"].abs()>change_value]    
-    filtered_df=filtered_df.sort_values(by="Date",ascending=False)
-    # df2=df2.sort_values(by="Date",ascending=False)
-    
-    if view_type == 'month':
-        # Aggregate data by month (sum of values) and calculate daily change percentage mean
-        month_data = df2.groupby(['Year','Month',"Month_Num"]).agg({
-            'Average': 'mean',  # mean of values for each month
-            'Daily Change %': 'sum'  # Average daily change percentage for each month
-        }).reset_index()
-        
-        if change_value is not None:
-            if 'greater' in change_type:
-                month_data = month_data[month_data['Daily Change %'] > change_value]
-            if "less" in change_type:
-                month_data = month_data[month_data['Daily Change %'] < change_value]
-            else:
-                month_data=month_data[month_data["Daily Change %"].abs()>change_value]   
-        
-        month_data['Date'] = month_data['Year'].astype(str) + "-" + month_data['Month']
-        month_data = month_data.sort_values(by=["Year",'Month_Num'], ascending=True)
-        
-         
-        
-        fig = px.line(month_data, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
+            # Day-wise data (raw data)
+            filtered_df["Date"]= filtered_df['Date'].dt.strftime('%Y-%m-%d')
 
-        return ticker_value, month_data[['Date', 'Average', 'Daily Change %']].to_dict('records'), fig
-    else:
-        # Day-wise data (raw data)
-        filtered_df["Date"]= filtered_df['Date'].dt.strftime('%Y-%m-%d')
-
-        fig = px.line(filtered_df, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
-    
-        return ticker_value, filtered_df.to_dict('records'), fig
+            fig = px.line(filtered_df, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
+        
+            return ticker_value, filtered_df.to_dict('records'), fig
+    except ValueError as ve:
+        logging.error(ve)
+        return f"Error: {str(ve)}", [], {}
+    except Exception as e:
+        logging.error(f"An error occurred: {str(e)}")
+        return f'This stock "{ticker_value}" is not in the record', [], {}
 
     
     
