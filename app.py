@@ -14,30 +14,31 @@ app = Dash(__name__)
 
 server=app.server
 
-app.layout = html.Div([
-    html.H1("Stock Market Data"),
+app.layout = html.Div(children=[
+    html.Div(style={"background-color":"none","display":"flex","justify-content":"center","height":"none","margin":"0px"},className='joker',children=[html.H1(style={"background-color":"none","margin-bottom":"10px ","margin-top":"0px ","font-size":"24px"},children=["Stock Market Data"])]),
     
-     html.Div(dcc.Input(id='input-on-submit', type='text',value="^NSEI",style={"display":"inline-block","font-size":"28px"})),
-    html.Button('Submit', id='submit-val', n_clicks=0,style={"display":"inline-block","font-size":"24px"}),
+    html.Div(style={"display":"flex","margin-bottom":"10px","height":"50px","background-color":"#c5e788","border":"5px solid #e46161","border-radius":"12px","align-content":"center"},children=[
+        html.Div(style={"display":"flex","height":"40px","width":"none","align-self":"center","background-color":"none"},children=[dcc.Input(id='input-on-submit', type='text', value="^NSEI", style={"display":"inline-block","font-size":"24px","background-color":"none","align-itmes": "center","border-radius":"12px"})]),
+    html.Button('Submit', id='submit-val', n_clicks=0,style={"display":"inline-block","font-size":"18px","background-color":"#94dfe2","height":"30px","align-self":"center","margin":"0px 10px","border-radius":"12px"}),
     html.Div(id='container-button-basic',
-             children='Enter a value and press submit',style={"display":"flex","font-size":"24px"}), 
-   
-    
-    # Date range slider
+             children='stock',style={"display":"inline-block","font-size":"24px","background-color":"none","align-self": "center","margin":"0px 10px"}),
+    html.Div(style={"height":"40px","background-color":"none","display":"flex","align-self":"center"},children=[
+     # Date range slider
     dcc.DatePickerRange(
         id='date-picker-range',
         start_date=datetime(datetime.today().year, 1, 1),
         end_date=datetime.today().date(),
         display_format='YYYY-MM-DD',
-      style={
-                'border': '1px solid #007BFF',  # Border color
-                'borderRadius': '5px',           # Rounded corners
-                'padding': '2px',                # Padding inside the component
-                'backgroundColor': '#f8f9fa',     # Background color
-                'width': 'auto',                  # Width of the date picker
-                'display': 'inline-block',         # Keep the date picker inline
-            }
-    ),
+        className='date-picker',
+        style={
+                    'border': '1px solid #007BFF',  # Border color
+                    'borderRadius': '5px',           # Rounded corners
+                    'padding': '2px',                # Padding inside the component
+                    'backgroundColor': '#none',     # Background color
+                    'max-width': '100%' ,"height":"none",                  # Width of the date picker
+                    "background-color":"black","display":"inline-block","align-self":"center","margin":"0px 10px","flex-shrink":"none"        # Keep the date picker inline
+                }
+    )]),
     
     
     
@@ -52,24 +53,24 @@ app.layout = html.Div([
         value='day',  # Default view is day-wise
         clearable=False,
          style={
-             'height':'auto',
-            'width': '200px',  # Set width of the dropdown
+             "height":"40px",
+            'width': '130px',  # Set width of the dropdown
             'padding': '0px',  # Add some padding
-            'fontSize': '24px',  # Change font size
+            'fontSize': '20px',  # Change font size
             'border': '2px solid #000',  # Add border
             'borderRadius': '10px',  # Rounded corners
-            'backgroundColor': '#f9f9f9',  # Background color
+            'backgroundColor': 'none',  # Background color
             'display':"inline-block",
-            'margin':'0px'
+            'margin':'0px',"background-color":"none","align-self":"center"
         }
     ),
     
     # Input for Daily Change %
-    dcc.Input(id='change-filter', type='number', placeholder="Daily Change %",style={"font-size":"24px","margin":"20px","display":"inline-block"}),
+    dcc.Input(id='change-filter', type='number', placeholder="Daily Change %",style={"font-size":"16px","margin":"20px","display":"inline-block","height":"30px","width":"130px","background-color":"none","align-self": "center"}),
     
     
     dcc.Checklist(
-        id='change-type',   labelStyle={"font-size":"28px"}, inputStyle={"transform":"scale(2.5)","margin":"20px"}, style={"display":"inline-block","justify-content":"center","margin":"20px"},
+        id='change-type',   labelStyle={"font-size":"24px","background-color":"none","align-self": "center","margin-right":"10px"}, inputStyle={"transform":"scale(2.5)","margin":"10px","background-color":"yellow"}, style={"display":"inline-block","justify-content":"center","margin":"10px","background-color":"none","align-self": "center"},
         options=[
             {'label': 'Greater than', 'value': 'greater'},
             {'label': 'Less than', 'value': 'less'}
@@ -77,57 +78,72 @@ app.layout = html.Div([
         
         value=[],
         inline=True
-    ),
+    )   
     
-    # Table to display data
-    dash_table.DataTable( style_cell={"textAlign":"center", 'font_size': '24px'} , style_table={"width":"40%","margin":"auto"},
-        id='table', 
-        columns=[
-            {'name': "Date", 'id': "Date"},
-            {"name":"Average","id":"Average"},
-            {"name":"Daily Change %","id":"Daily Change %"}
-            ],
-        data=[],
-        style_data_conditional=[
-            # Style for values less than -2.5 (Dark Red)
-            {
-                'if': {
-                    'filter_query': '{Daily Change %} < -2.5',
-                    'column_id': 'Daily Change %'
-                },
-                'backgroundColor': 'darkred',
-                'color': 'white'
-            },
-            # Style for values less than -1 (Light Orange)
-            {
-                'if': {
-                    'filter_query': '{Daily Change %} < -1 && {Daily Change %} >= -2.5',
-                    'column_id': 'Daily Change %'
-                },
-                'backgroundColor': '#fa8107',
-                'color': 'black'
-            },
-            # Style for values greater than 1 (Yellow)
-            {
-                'if': {
-                    'filter_query': '{Daily Change %} > 1 && {Daily Change %} <= 2.5',
-                    'column_id': 'Daily Change %'
-                },
-                'backgroundColor': '#d6fa07',
-                'color': 'black'
-            },
-            # Style for values greater than 2.5 (Dark Green)
-            {
-                'if': {
-                    'filter_query': '{Daily Change %} > 2.5',
-                    'column_id': 'Daily Change %'
-                },
-                'backgroundColor': 'darkgreen',
-                'color': 'white'
-            }
-        ]
-),
-    dcc.Graph(figure={}, id='controls-and-graph')
+    ]),
+    
+      
+    html.Div(style={"display":"flex"},children=[
+        html.Div(style={"overflowY": "scroll", "height": "78vh", "width": "40%","display":"inline-block"},
+                 children=[
+                    # Table to display data
+                    dash_table.DataTable( style_cell={"textAlign":"center",'minWidth': '10px','width': '15px','maxWidth': '15px', 'font_size': '18px',"width":"none"} , style_table={"width":"auto","margin":"auto","display":"block"},
+                        id='table', 
+                        columns=[
+                            {'name': "Date", 'id': "Date"},
+                            {"name":"Average","id":"Average"},
+                            {"name":"Daily Change %","id":"Daily Change %"}
+                            ],
+                        data=[],
+                        style_data_conditional=[
+                            # Style for values less than -2.5 (Dark Red)
+                            {
+                                'if': {
+                                    'filter_query': '{Daily Change %} < -2.5',
+                                    'column_id': 'Daily Change %'
+                                },
+                                'backgroundColor': 'darkred',
+                                'color': 'white'
+                            },
+                            # Style for values less than -1 (Light Orange)
+                            {
+                                'if': {
+                                    'filter_query': '{Daily Change %} < -1 && {Daily Change %} >= -2.5',
+                                    'column_id': 'Daily Change %'
+                                },
+                                'backgroundColor': '#fa8107',
+                                'color': 'black'
+                            },
+                            # Style for values greater than 1 (Yellow)
+                            {
+                                'if': {
+                                    'filter_query': '{Daily Change %} > 1 && {Daily Change %} <= 2.5',
+                                    'column_id': 'Daily Change %'
+                                },
+                                'backgroundColor': '#d6fa07',
+                                'color': 'black'
+                            },
+                            # Style for values greater than 2.5 (Dark Green)
+                            {
+                                'if': {
+                                    'filter_query': '{Daily Change %} > 2.5',
+                                    'column_id': 'Daily Change %'
+                                },
+                                'backgroundColor': 'darkgreen',
+                                'color': 'white'
+                            }
+                    ]   
+                    ),
+                    
+                 ]    
+        ),dcc.Graph(figure={}, id='controls-and-graph',style={"width":"60%","height":"80vh","display":"inline","border":"none"})
+    ]
+        
+    )
+    
+    
+        
+    
     
 ])
 
@@ -200,11 +216,25 @@ def update_table(start_date, end_date, change_value, change_type, view_type, n_c
                     year_data=year_data[year_data["Daily Change %"].abs()>change_value]   
             
             year_data['Date'] = year_data['Year']
+            year_data["Average"]=year_data["Average"].round(2)
+            year_data["Daily Change %"]=year_data["Daily Change %"].round(2)
             # month_data = month_data.sort_values(by=["Year",'Month_Num'], ascending=True)
             
             
 
-            fig = px.line(year_data, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
+            fig = px.line(year_data, x='Date', y='Average', title=f"{stock} over Time", labels={'Date': 'Date', 'Average': 'Average'})
+            # Update the layout for styling
+            fig.update_layout(
+                title_font=dict(size=20),  # Change title font size if needed
+                xaxis_title=dict(text='Year', font=dict(size=24, family='Arial', weight='bold')),
+                yaxis_title=dict(text='Average', font=dict(size=24, family='Arial', weight='bold')),
+                xaxis_tickfont=dict(size=18, family='Arial'),  # Style for x-axis ticks (years)
+                yaxis_tickfont=dict(size=22, family='Arial')
+                # plot_bgcolor='white',  # Optional: set background color
+            )
+
+                    # Update the line width
+            fig.update_traces(line=dict(width=2))  # Adjust the number for desired thickness
 
             return ticker_value, year_data[['Date', 'Average', 'Daily Change %']].to_dict('records'), fig
     
@@ -241,17 +271,19 @@ def update_table(start_date, end_date, change_value, change_type, view_type, n_c
             
             month_data['Date'] = month_data['Year'].astype(str) + "-" + month_data['Month']
             month_data = month_data.sort_values(by=["Year",'Month_Num'], ascending=True)
+            month_data["Average"]=month_data["Average"].round(2)
+            month_data["Daily Change %"]=month_data["Daily Change %"].round(2)
             
             
             
-            fig = px.line(month_data, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
+            fig = px.line(month_data, x='Date', y='Average', title=f"{stock} over Time", labels={'Date': 'Date', 'Average': 'Average'})
 
             return ticker_value, month_data[['Date', 'Average', 'Daily Change %']].to_dict('records'), fig
         else:
             # Day-wise data (raw data)
             filtered_df["Date"]= filtered_df['Date'].dt.strftime('%Y-%m-%d')
 
-            fig = px.line(filtered_df, x='Date', y='Average', title='Nifty over Time', labels={'Date': 'Date', 'Average': 'Average'})
+            fig = px.line(filtered_df, x='Date', y='Average', title=f"{stock} over Time", labels={'Date': 'Date', 'Average': 'Average'})
         
             return ticker_value, filtered_df.to_dict('records'), fig
     except ValueError as ve:

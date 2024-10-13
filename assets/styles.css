@@ -1,0 +1,32 @@
+
+.date-picker input {
+    height: 30px; 
+    width: none;     /* Ensure input height matches */
+    font-size: 18px;   /* Adjust font size */
+    line-height: none;
+    background-color:none;
+    display: inline;
+     /* Center text vertically */
+}
+/* "DateRangePickerInput_arrow_svg DateRangePickerInput_arrow_svg_1" */
+
+.DateRangePickerInput_arrow_svg{
+    color: blue;
+    background-color:none;
+    margin-right: 13px;
+}
+
+.DateInput{
+    width: none;
+}
+
+.date-picker{
+    max-width: none;
+    width: 300px;
+}
+
+#input-on-submit{
+    background-color:none;
+    height: 30px;
+    width: 150px;
+}
