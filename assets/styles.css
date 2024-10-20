@@ -1,32 +1,237 @@
 
-.date-picker input {
-    height: 30px; 
-    width: none;     /* Ensure input height matches */
-    font-size: 18px;   /* Adjust font size */
-    line-height: none;
-    background-color:none;
-    display: inline;
-     /* Center text vertically */
-}
-/* "DateRangePickerInput_arrow_svg DateRangePickerInput_arrow_svg_1" */
+@media(min-width:480px){
+    .date-picker input {
+        height: 30px; 
+        width: none;     /* Ensure input height matches */
+        font-size: 18px;   /* Adjust font size */
+        line-height: none;
+        background-color:none;
+        display: inline;
+        /* Center text vertically */
+    }
 
-.DateRangePickerInput_arrow_svg{
-    color: blue;
-    background-color:none;
-    margin-right: 13px;
-}
+    .DateRangePickerInput_arrow_svg{
+        color: blue;
+        background-color:none;
+        margin-right: 13px;
+    }
 
-.DateInput{
+    .date-picker{
+        width: 300px;
+        border: 1px solid #007BFF;  
+        border-radius: 5px;          
+        padding: 2px;                    
+        max-width: 100%;              
+        background-color:black;display:inline-block;align-self:center;margin:0px 10px;flex-shrink:none;
+
+    }
+
+    #input-on-submit{
+        background-color:none;
+        height: 30px;
+        width: 150px;
+    }
+
+    .joker{
+        background-color:none;display:flex;justify-content:center;height:none;margin:0px;
+    }
+
+    .top-box{
+        background-color: none;
+        margin-bottom: 10px;
+        margin-top: 0px;
+        font-size: 24px;
+        
+    }
+
+    .nav-box{
+        display: flex;
+    margin-bottom: 10px;
+    height: 50px;
+    background-color: #c5e788;
+    border: 5px solid #e46161;
+    border-radius: 12px;
+    align-content: center;
+
+    }
+
+    .input-box{
+        display: flex;
+    height: 40px;
     width: none;
-}
+    align-self: center;
+    background-color: none;
 
-.date-picker{
-    max-width: none;
-    width: 300px;
-}
+    }
 
-#input-on-submit{
-    background-color:none;
+    .dccinput{
+        display: inline-block;
+        font-size: 24px;
+        background-color: none;
+        align-items: center;
+        border-radius: 12px;
+        
+    }
+
+    .button{
+        display: inline-block;
+    font-size: 18px;
+    background-color: #94dfe2;
     height: 30px;
-    width: 150px;
+    align-self: center;
+    margin: 0px 10px;
+    border-radius: 12px;
+
+    }
+
+    #container-button-basic{
+        display: inline-block;
+    font-size: 24px;
+    background-color: none; 
+    align-self: center; 
+    margin: 0px 10px;
+
+    }
+
+    .date-box{
+        height: 40px;
+    background-color: none;
+    display: flex;
+    align-self: center; 
+
+    }
+
+    #view-selector{
+        /* overflow: hidden; */
+        height: 35px;
+        /* padding:2px; */
+    width: 120px; 
+    font-size: 20px; 
+    border: 3px solid #000;
+    border-radius: 10px; 
+    display:inline-block;
+    margin: 0px;
+    align-self: center;
+    background-color: #007BFF;
+
+    }
+
+    /* .Select-control{
+        background-color: rgb(76, 0, 255);
+        max-width: fit-content; 
+        width: auto;
+        border-radius: 10px; 
+        margin: 0px;
+    }  */
+
+    #change-filter{
+        font-size: 16px;
+    margin: 20px;
+    display: inline-block;
+    height: 30px;
+    width: 130px;
+    background-color: none;
+    align-self: center; 
+
+    }
+
+    #labelcss{
+        font-size: 24px;
+    background-color: none;
+    align-self: center; 
+    margin-right: 10px;
+
+    }
+
+    .inputcss{
+        transform: scale(2.5);
+    margin: 10px;
+    background-color: yellow;
+
+    }
+
+    #change-type{
+        display: inline-block;
+    justify-content: center; 
+    margin: 10px;
+    background-color: none;
+    align-self: center; 
+    }
+
+    .table-box{
+        overflow-y: scroll;
+    height: 78vh;
+    width: 40%;
+    display: inline-block;
+
+    }
+
+    .body-box{
+        display: flex;
+        justify-content: space-around;
+    }
+
+    .graph-box{
+        display: inline-block;
+        /* border:10px solid green; */
+        width: 60%;
+        
+    }
+    #controls-and-graph{
+        width:100%;
+        height:80vh;
+        display:inline-block;
+    }
 }
+@media(max-width:480px){
+
+    .body-box{
+        border: 10px solid red;
+        display: flex;
+        flex-direction: column-reverse;
+    }
+    .table-box{
+        border: 10px solid blue;
+        /* flex:2; */
+        margin: 0px;
+        height: auto;
+        overflow-y: none;
+        width: 90vw;
+    }
+    .graph-box{
+        /* flex:1; */
+        border: 10px solid rgb(98, 198, 37);
+        height: 50vh;
+        width: 90vw;
+        margin: 0px;
+        overflow: hidden;
+
+    }
+    #controls-and-graph{
+        height: 40vh;
+        border: 10px solid rgb(155, 37, 198);
+        width: 80vw;
+
+    }
+
+
+    .joker{
+        width: 90vw;
+        background-color: yellow;
+    }
+    .top-box{
+        background-color: blanchedalmond;
+        width: 90vw;
+    }
+    .nav-box{
+        flex-direction: column;
+        width: 90vw;
+        height: 30vh;
+        border: 3px solid yellowgreen;
+    }
+
+
+
+
+}
+

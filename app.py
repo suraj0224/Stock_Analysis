@@ -5,44 +5,67 @@ from dash import Dash, html, dash_table, dcc, Output, Input,State
 import yfinance as yf
 from datetime import datetime
 import logging
+import pytz
+import dash_bootstrap_components as dbc
+
+ist=pytz.timezone("Asia/Kolkata")
+utc_now=datetime.now(pytz.utc)
+ist_now=utc_now.astimezone(ist)
 
 logging.basicConfig(filename='app.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
-
-
 app = Dash(__name__)
+
+GA_TRACKING_ID="G-9ET5TW2W6J"
 
 server=app.server
 
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script async src="https://www.googletagmanager.com/gtag/js?id=''' + GA_TRACKING_ID + '''"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', ''' + GA_TRACKING_ID + ''', { 'anonymize_ip': true });
+        </script>
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+'''
+
 app.layout = html.Div(children=[
-    html.Div(style={"background-color":"none","display":"flex","justify-content":"center","height":"none","margin":"0px"},className='joker',children=[html.H1(style={"background-color":"none","margin-bottom":"10px ","margin-top":"0px ","font-size":"24px"},children=["Stock Market Data"])]),
+    html.Div(className='joker',children=[html.H1(className="top-box",children=["Stock Market Data"])]),
     
-    html.Div(style={"display":"flex","margin-bottom":"10px","height":"50px","background-color":"#c5e788","border":"5px solid #e46161","border-radius":"12px","align-content":"center"},children=[
-        html.Div(style={"display":"flex","height":"40px","width":"none","align-self":"center","background-color":"none"},children=[dcc.Input(id='input-on-submit', type='text', value="^NSEI", style={"display":"inline-block","font-size":"24px","background-color":"none","align-itmes": "center","border-radius":"12px"})]),
-    html.Button('Submit', id='submit-val', n_clicks=0,style={"display":"inline-block","font-size":"18px","background-color":"#94dfe2","height":"30px","align-self":"center","margin":"0px 10px","border-radius":"12px"}),
-    html.Div(id='container-button-basic',
-             children='stock',style={"display":"inline-block","font-size":"24px","background-color":"none","align-self": "center","margin":"0px 10px"}),
-    html.Div(style={"height":"40px","background-color":"none","display":"flex","align-self":"center"},children=[
+    html.Div(className="nav-box",children=[
+        html.Div(className="input-box",children=[dcc.Input(id='input-on-submit', type='text', value="^NSEI",className="dccinput" )]),
+    html.Button('Submit', id='submit-val', n_clicks=0,className="button"),
+    html.Div(id='container-button-basic',children='stock'),
+    html.Div(className="date-box",children=[
      # Date range slider
     dcc.DatePickerRange(
         id='date-picker-range',
         start_date=datetime(datetime.today().year, 1, 1),
-        end_date=datetime.today().date(),
+        end_date=ist_now.date(),
         display_format='YYYY-MM-DD',
-        className='date-picker',
-        style={
-                    'border': '1px solid #007BFF',  # Border color
-                    'borderRadius': '5px',           # Rounded corners
-                    'padding': '2px',                # Padding inside the component
-                    'backgroundColor': '#none',     # Background color
-                    'max-width': '100%' ,"height":"none",                  # Width of the date picker
-                    "background-color":"black","display":"inline-block","align-self":"center","margin":"0px 10px","flex-shrink":"none"        # Keep the date picker inline
-                }
+        className='date-picker'
+     
     )]),
-    
-    
-    
-     # input for monthwise or date wise
+    # input for monthwise or date wise
     dcc.Dropdown(
         id='view-selector',
         options=[
@@ -51,104 +74,85 @@ app.layout = html.Div(children=[
             {'label': 'Yearly', 'value': 'year'}
         ],
         value='day',  # Default view is day-wise
-        clearable=False,
-         style={
-             "height":"40px",
-            'width': '130px',  # Set width of the dropdown
-            'padding': '0px',  # Add some padding
-            'fontSize': '20px',  # Change font size
-            'border': '2px solid #000',  # Add border
-            'borderRadius': '10px',  # Rounded corners
-            'backgroundColor': 'none',  # Background color
-            'display':"inline-block",
-            'margin':'0px',"background-color":"none","align-self":"center"
-        }
+        clearable=False
     ),
     
     # Input for Daily Change %
-    dcc.Input(id='change-filter', type='number', placeholder="Daily Change %",style={"font-size":"16px","margin":"20px","display":"inline-block","height":"30px","width":"130px","background-color":"none","align-self": "center"}),
-    
-    
+    dcc.Input(id='change-filter', type='number', placeholder="Daily Change %"),
+
     dcc.Checklist(
-        id='change-type',   labelStyle={"font-size":"24px","background-color":"none","align-self": "center","margin-right":"10px"}, inputStyle={"transform":"scale(2.5)","margin":"10px","background-color":"yellow"}, style={"display":"inline-block","justify-content":"center","margin":"10px","background-color":"none","align-self": "center"},
-        options=[
-            {'label': 'Greater than', 'value': 'greater'},
-            {'label': 'Less than', 'value': 'less'}
-        ],
-        
-        value=[],
-        inline=True
+        id='change-type',   labelStyle={"className":"labelcss"}, inputStyle={"className":"inputcss"},
+        options=[{'label': 'Greater than', 'value': 'greater'},{'label': 'Less than', 'value': 'less'}],value=[],inline=True
     )   
     
     ]),
     
-      
-    html.Div(style={"display":"flex"},children=[
-        html.Div(style={"overflowY": "scroll", "height": "78vh", "width": "40%","display":"inline-block"},
-                 children=[
-                    # Table to display data
-                    dash_table.DataTable( style_cell={"textAlign":"center",'minWidth': '10px','width': '15px','maxWidth': '15px', 'font_size': '18px',"width":"none"} , style_table={"width":"auto","margin":"auto","display":"block"},
-                        id='table', 
-                        columns=[
-                            {'name': "Date", 'id': "Date"},
-                            {"name":"Average","id":"Average"},
-                            {"name":"Daily Change %","id":"Daily Change %"}
-                            ],
-                        data=[],
-                        style_data_conditional=[
-                            # Style for values less than -2.5 (Dark Red)
-                            {
-                                'if': {
-                                    'filter_query': '{Daily Change %} < -2.5',
-                                    'column_id': 'Daily Change %'
+     dcc.Loading(  # Add Loading component here
+            id="loading",
+            type="graph",  # You can choose "graph","cube","circle","dot","default
+            children=[  
+        html.Div(className="body-box",children=[
+            html.Div(className="table-box",
+                    children=[
+                        # Table to display data
+                        dash_table.DataTable( style_cell={"textAlign":"center",'minWidth': '10px','width': '15px','maxWidth': '15px', 'font_size': '18px',"width":"none"} , style_table={"width":"auto","margin":"auto","display":"block"},
+                            id='table', 
+                            columns=[
+                                {'name': "Date", 'id': "Date"},
+                                {"name":"Average","id":"Average"},
+                                {"name":"Daily Change %","id":"Daily Change %"}
+                                ],
+                            data=[],
+                            style_data_conditional=[
+                                # Style for values less than -2.5 (Dark Red)
+                                {
+                                    'if': {
+                                        'filter_query': '{Daily Change %} < -2.5',
+                                        'column_id': 'Daily Change %'
+                                    },
+                                    'backgroundColor': 'darkred',
+                                    'color': 'white'
                                 },
-                                'backgroundColor': 'darkred',
-                                'color': 'white'
-                            },
-                            # Style for values less than -1 (Light Orange)
-                            {
-                                'if': {
-                                    'filter_query': '{Daily Change %} < -1 && {Daily Change %} >= -2.5',
-                                    'column_id': 'Daily Change %'
+                                # Style for values less than -1 (Light Orange)
+                                {
+                                    'if': {
+                                        'filter_query': '{Daily Change %} < -1 && {Daily Change %} >= -2.5',
+                                        'column_id': 'Daily Change %'
+                                    },
+                                    'backgroundColor': '#fa8107',
+                                    'color': 'black'
                                 },
-                                'backgroundColor': '#fa8107',
-                                'color': 'black'
-                            },
-                            # Style for values greater than 1 (Yellow)
-                            {
-                                'if': {
-                                    'filter_query': '{Daily Change %} > 1 && {Daily Change %} <= 2.5',
-                                    'column_id': 'Daily Change %'
+                                # Style for values greater than 1 (Yellow)
+                                {
+                                    'if': {
+                                        'filter_query': '{Daily Change %} > 1 && {Daily Change %} <= 2.5',
+                                        'column_id': 'Daily Change %'
+                                    },
+                                    'backgroundColor': '#d6fa07',
+                                    'color': 'black'
                                 },
-                                'backgroundColor': '#d6fa07',
-                                'color': 'black'
-                            },
-                            # Style for values greater than 2.5 (Dark Green)
-                            {
-                                'if': {
-                                    'filter_query': '{Daily Change %} > 2.5',
-                                    'column_id': 'Daily Change %'
-                                },
-                                'backgroundColor': 'darkgreen',
-                                'color': 'white'
-                            }
-                    ]   
-                    ),
-                    
-                 ]    
-        ),dcc.Graph(figure={}, id='controls-and-graph',style={"width":"60%","height":"80vh","display":"inline","border":"none"})
-    ]
+                                # Style for values greater than 2.5 (Dark Green)
+                                {
+                                    'if': {
+                                        'filter_query': '{Daily Change %} > 2.5',
+                                        'column_id': 'Daily Change %'
+                                    },
+                                    'backgroundColor': 'darkgreen',
+                                    'color': 'white'
+                                }
+                        ]   
+                        ),
+                        
+                    ]    
+            ),html.Div(className="graph-box",children=[dcc.Graph(figure={}, id='controls-and-graph')]),
+            dcc.Store(id='screen-size', data=''),
+            html.Script('window.onresize = function() { var size = window.innerWidth; document.getElementById("screen-size").value = size; };')
+        ]
+            
+        )
+            ])
         
-    )
-    
-    
-        
-    
-    
 ])
-
-
-
 
 # Callback for filtering data
 @app.callback(
@@ -161,17 +165,14 @@ app.layout = html.Div(children=[
      Input('change-type', 'value'),
      Input('view-selector', 'value'),
      Input('submit-val', 'n_clicks'),
+     Input('screen-size', 'data'),
      State('input-on-submit', 'value')
       ]
     
 )
 
-
-
-
-def update_table(start_date, end_date, change_value, change_type, view_type, n_clicks, ticker_value):
+def update_table(start_date, end_date, change_value, change_type, view_type, n_clicks,screen_size,ticker_value):
     try:
-        
         
         stock=ticker_value
         # print(stock,n_clicks)
@@ -198,7 +199,28 @@ def update_table(start_date, end_date, change_value, change_type, view_type, n_c
         df["Month_Num"]=df['Date'].dt.month
         df['Year'] = df['Date'].dt.year
 
+        # Update the layout for styling
+        # default setting 
+        title_font = dict(size=20)
+        xaxis_title = dict(text='Year', font=dict(size=24, family='Arial', weight='bold'))
+        yaxis_title = dict(text='Average', font=dict(size=24, family='Arial', weight='bold'))
+        xaxis_tickfont = dict(size=18, family='Arial')
+        yaxis_tickfont = dict(size=22, family='Arial')
+        plot_bgcolor="red"
         
+        # applying new setting on screen size 
+        print("here is my"+screen_size)
+        if screen_size and int(screen_size) < 480:
+            title_font['size']=10
+            xaxis_title['font']['size'] = 12  # Example: larger font for wider screens
+            yaxis_title['font']['size'] = 15
+            xaxis_tickfont['size'] = 12
+            yaxis_tickfont['size'] = 13
+            plot_bgcolor="white"
+        
+        
+            
+                
         
         if view_type == 'year':
             # Aggregate data by month (sum of values) and calculate daily change percentage mean
@@ -223,19 +245,10 @@ def update_table(start_date, end_date, change_value, change_type, view_type, n_c
             
 
             fig = px.line(year_data, x='Date', y='Average', title=f"{stock} over Time", labels={'Date': 'Date', 'Average': 'Average'})
-            # Update the layout for styling
-            fig.update_layout(
-                title_font=dict(size=20),  # Change title font size if needed
-                xaxis_title=dict(text='Year', font=dict(size=24, family='Arial', weight='bold')),
-                yaxis_title=dict(text='Average', font=dict(size=24, family='Arial', weight='bold')),
-                xaxis_tickfont=dict(size=18, family='Arial'),  # Style for x-axis ticks (years)
-                yaxis_tickfont=dict(size=22, family='Arial')
-                # plot_bgcolor='white',  # Optional: set background color
-            )
-
-                    # Update the line width
-            fig.update_traces(line=dict(width=2))  # Adjust the number for desired thickness
-
+            
+            fig.update_layout(title_font=title_font, xaxis_title=xaxis_title, yaxis_title=yaxis_title, xaxis_tickfont=xaxis_tickfont,yaxis_tickfont=yaxis_tickfont, plot_bgcolor=plot_bgcolor)
+            
+            
             return ticker_value, year_data[['Date', 'Average', 'Daily Change %']].to_dict('records'), fig
     
         # Filter by date range
@@ -292,10 +305,6 @@ def update_table(start_date, end_date, change_value, change_type, view_type, n_c
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
         return f'This stock "{ticker_value}" is not in the record', [], {}
-
-    
-    
-    
 
 
 # Run the app
